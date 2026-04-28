@@ -1,0 +1,14 @@
+```{r make-regressions}
+reg1 <- lm(log_wage ~ veteran, data = df)
+reg2 <- lm(log_wage ~ veteran + AGE + female, data = df)
+reg3 <- felm(log_wage ~ veteran + AGE + female | METRO + YEAR, data = df)
+reg4 <- felm(log_wage ~ veteran + AGE + female | METRO + YEAR + DEGFIELD + OCC2010, data = df)
+reg5 <- felm(log_wage ~ veteran + AGE + female + DIFFCARE + DIFFREM + VETDISAB | METRO + YEAR + DEGFIELD + OCC2010, data = df)
+
+
+robust_se_1 <- sqrt(diag(vcovHC(reg1, type = "HC1")))
+robust_se_2 <- sqrt(diag(vcovHC(reg2, type = "HC1")))
+robust_se_3 <- sqrt(diag(vcovHC(reg3, type = "HC1")))
+robust_se_4 <- sqrt(diag(vcovHC(reg4, type = "HC1")))
+robust_se_5 <- sqrt(diag(vcovHC(reg5, type = "HC1")))
+```
