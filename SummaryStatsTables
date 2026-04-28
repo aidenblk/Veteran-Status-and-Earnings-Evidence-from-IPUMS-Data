@@ -1,0 +1,46 @@
+# Table 1
+
+```{r make-summary-overall}
+sum_overall <- df %>%
+  summarise(
+    N = format(n(), big.mark = ","),
+    mean_wage = mean(incwage, na.rm = TRUE),
+    median_wage = median(incwage, na.rm = TRUE),
+    mean_log_wage = mean(log_wage, na.rm = TRUE),
+    mean_age = mean(AGE, na.rm = TRUE),
+    female_share = mean(female, na.rm = TRUE),
+    veteran_share = mean(veteran, na.rm = TRUE)
+  )
+```
+
+  
+```{r table-summary-overall}
+knitr::kable(sum_overall,
+             format = "latex",
+             booktabs = TRUE,
+             caption = "Overall Summary Statistics") %>%
+   kableExtra::kable_styling(latex_options = "HOLD_position")
+```
+
+# Table 2
+
+```{r make-summary-by-vet}
+sum_by_vet <- df %>%
+  group_by(veteran) %>%
+  summarise(
+    N = format(n(), big.mark = ","),
+    mean_wage = mean(incwage, na.rm = TRUE),
+    median_wage = median(incwage, na.rm = TRUE),
+    mean_log_wage = mean(log_wage, na.rm = TRUE),
+    mean_age = mean(AGE, na.rm = TRUE),
+    female_share = mean(female, na.rm = TRUE)
+  )
+```
+
+```{r table-summary-by-vet}
+knitr::kable(sum_by_vet,
+             format = "latex",
+             booktabs = TRUE,
+             caption = "Summary Statistics by Veteran Status") %>%
+   kableExtra::kable_styling(latex_options = "HOLD_position")
+```
