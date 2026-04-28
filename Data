@@ -1,0 +1,33 @@
+To obtain the data and replicate this project:
+
+1. Go to https://usa.ipums.org/usa/ and create an account.
+
+2. Select the following dataset:
+   - American Community Survey (ACS)
+
+3. Select the following sample years:
+   - [Specify years you used, e.g., 2010–2019]
+
+4. Add the following variables to your extract:
+   - SEX
+   - VETSTAT
+   - INCWAGE
+   - EDUCD
+   - OCC2010
+   - DEGFIELD
+   - VETDISAB
+   - DIFFCARE
+   - DIFFREM
+   - METRO
+   - AGE 
+
+5. Submit the extract request and download the data as a .csv file.
+
+6. Apply the following sample restrictions in your code:
+   - Keep individuals with INCWAGE > 0
+   - Restrict to bachelor's degree holders (EDUCD == 101)
+   - Restrict to selected degree fields and occupations (see code)
+
+7. Run the provided R scripts to clean the data and reproduce results.
+
+8. Due to computational constraints, a random subsample (e.g., 500,000 observations) may be used. This is not required to run the analysis, but helps reduce memory usage. To ensure reproducibility, a random seed should be set before sampling.
