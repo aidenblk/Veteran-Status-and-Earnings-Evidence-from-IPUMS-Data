@@ -1,0 +1,234 @@
+---
+title: 'Aiden Black: Veteran Status Effect on Income Wage'
+author: "Aiden Black"
+date: "2026-04-28"
+output: pdf_document
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \usepackage[section]{placeins}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{wrapfig}
+  - \usepackage{xcolor}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(stargazer)
+library(sandwich)
+library(lmtest)
+library(lfe)
+library(kableExtra)
+
+options(stargazer.no.space = TRUE)
+options(stargazer.table.layout = "l")
+```
+
+```{r}
+vetcash <- read.csv("VETCASH4.csv")
+```
+
+```{r}
+set.seed(123)
+
+df <- vetcash %>%
+  mutate(
+    incwage = as.numeric(INCWAGE)) %>%
+  filter(
+    !is.na(SEX),
+    !is.na(VETSTAT),
+    !is.na(incwage), incwage > 0,
+    !is.na(EDUCD), EDUCD == 101,
+    !is.na(OCC2010),
+    !is.na(DEGFIELD),
+    !is.na(VETDISAB),
+    !is.na(DIFFCARE),
+    !is.na(DIFFREM),
+    !is.na(METRO)
+  ) %>%
+  sample_n(500000) %>%
+  mutate(
+    female = ifelse(SEX == 2, 1, 0),
+    veteran = ifelse(VETSTAT == 2, 1, 0),
+    log_wage = log(incwage)
+  )
+
+n_total <- nrow(df)
+```
+
+```{r make-summary-overall}
+sum_overall <- df %>%
+  summarise(
+    N = format(n(), big.mark = ","),
+    mean_wage = mean(incwage, na.rm = TRUE),
+    median_wage = median(incwage, na.rm = TRUE),
+    mean_log_wage = mean(log_wage, na.rm = TRUE),
+    mean_age = mean(AGE, na.rm = TRUE),
+    female_share = mean(female, na.rm = TRUE),
+    veteran_share = mean(veteran, na.rm = TRUE)
+  )
+```
+
+```{r table-summary-overall}
+knitr::kable(sum_overall,
+             format = "latex",
+             booktabs = TRUE,
+             caption = "Overall Summary Statistics") %>%
+   kableExtra::kable_styling(latex_options = "HOLD_position")
+```
+
+```{r make-summary-by-vet}
+sum_by_vet <- df %>%
+  group_by(veteran) %>%
+  summarise(
+    N = format(n(), big.mark = ","),
+    mean_wage = mean(incwage, na.rm = TRUE),
+    median_wage = median(incwage, na.rm = TRUE),
+    mean_log_wage = mean(log_wage, na.rm = TRUE),
+    mean_age = mean(AGE, na.rm = TRUE),
+    female_share = mean(female, na.rm = TRUE)
+  )
+```
+
+```{r table-summary-by-vet}
+knitr::kable(sum_by_vet,
+             format = "latex",
+             booktabs = TRUE,
+             caption = "Summary Statistics by Veteran Status") %>%
+   kableExtra::kable_styling(latex_options = "HOLD_position")
+```
+
+```{r}
+ggplot(df, aes(x = log_wage, fill = factor(veteran))) +
+  geom_density(alpha = 0.6) +
+  labs(
+    title = "Figure 1: Distribution of Log Wages by Veteran Status",
+    x = "Log Wage Income",
+    y = "Density",
+    fill = "Veteran Status"
+  ) +
+  scale_fill_discrete(labels = c("Non-Veteran", "Veteran")) +
+  theme_minimal()
+```
+
+```{r}
+age_wage <- df %>%
+  group_by(veteran, AGE) %>%
+  summarise(
+    mean_log_wage = mean(log_wage, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+```{r}
+ggplot(age_wage, aes(x = AGE, y = mean_log_wage, color = factor(veteran))) +
+  geom_line(linewidth = 1) +
+  labs(
+    title = "Figure 2: Mean Log Wages by Age and Veteran Status",
+    x = "Age",
+    y = "Mean Log Wage",
+    color = "Veteran Status"
+  ) +
+  scale_color_discrete(labels = c("Non-Veteran", "Veteran")) +
+  theme_minimal()
+```
+
+```{r}
+year_wage <- df %>%
+  group_by(veteran, YEAR) %>%
+  summarise(
+    mean_log_wage = mean(log_wage, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+```{r}
+ggplot(year_wage, aes(x = YEAR, y = mean_log_wage, color = factor(veteran))) +
+  geom_line(linewidth = 1) +
+  geom_point() +
+  labs(
+    title = "Figure 3: Mean Log Wage by Year and Veteran Status",
+    x = "Year",
+    y = "Mean Log Wage",
+    color = "Veteran"
+  ) +
+  scale_color_discrete(labels = c("Non-Veteran", "Veteran")) +
+  theme_minimal()
+```
+
+```{r}
+resid_model <- felm(log_wage ~ AGE + female + DIFFCARE + DIFFREM + VETDISAB | METRO + YEAR + DEGFIELD + OCC2010, data = df)
+
+df$resid_wage <- resid(resid_model)
+```
+
+```{r make-regressions}
+reg1 <- lm(log_wage ~ veteran, data = df)
+reg2 <- lm(log_wage ~ veteran + AGE + female, data = df)
+reg3 <- felm(log_wage ~ veteran + AGE + female | METRO + YEAR, data = df)
+reg4 <- felm(log_wage ~ veteran + AGE + female | METRO + YEAR + DEGFIELD + OCC2010, data = df)
+reg5 <- felm(log_wage ~ veteran + AGE + female + DIFFCARE + DIFFREM + VETDISAB | METRO + YEAR + DEGFIELD + OCC2010, data = df)
+
+
+robust_se_1 <- sqrt(diag(vcovHC(reg1, type = "HC1")))
+robust_se_2 <- sqrt(diag(vcovHC(reg2, type = "HC1")))
+robust_se_3 <- sqrt(diag(vcovHC(reg3, type = "HC1")))
+robust_se_4 <- sqrt(diag(vcovHC(reg4, type = "HC1")))
+robust_se_5 <- sqrt(diag(vcovHC(reg5, type = "HC1")))
+```
+
+```{r table-regressions, results='asis'}
+stargazer(reg1, reg2, reg3, reg4, reg5,
+          type = "latex",
+          float = TRUE,
+          table.placement = "H",
+          se = list(robust_se_1, robust_se_2, robust_se_3, robust_se_4, robust_se_5),
+          digits = 3,
+          title = "Regression Results",
+          dep.var.labels = "Log Wage Income",
+          column.labels = c("Raw", "Controls", "METRO + Year", "Degree + Job", "Full Model"),
+          covariate.labels = c("Veteran", "Female", "Age"),
+          omit = c("factor\\(YEAR\\)", "factor\\(DEGFIELD\\)", "factor\\(OCC2010\\)", "factor\\(DIFFCARE\\)", "factor\\(DIFFREM\\)", "factor\\(VETDISAB\\)", "factor\\(METRO\\)"),
+          keep.stat = c("n", "rsq", "adj.rsq"))
+```
+
+```{r make-regressionsAge}
+regAge <- lm(log_wage ~ veteran + AGE, data = df)
+
+robust_se_Age <- sqrt(diag(vcovHC(regAge, type = "HC1")))
+```
+
+```{r table-RegressionAge, results='asis'}
+stargazer(regAge, reg2, 
+          type = "latex",
+          float = TRUE,
+          table.placement = "H",
+          se = list(robust_se_Age, robust_se_2),
+          digits = 3,
+          title = "Age Control Regression",
+          dep.var.labels = "Log Wage Income",
+          column.labels = c("Age", "Age + Female"),
+          covariate.labels = c("Veteran", "Age", "Female"),
+          keep.stat = c("n", "rsq", "adj.rsq"))
+```
+
+```{r}
+ggplot(df, aes(x = resid_wage, fill = factor(veteran))) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Residual Log Wages by Veteran Status",
+       x = "Log Wage (Residualized)",
+       fill = "Veteran") +
+  theme_minimal()
+```
