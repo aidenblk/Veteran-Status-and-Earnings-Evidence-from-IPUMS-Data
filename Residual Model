@@ -1,0 +1,16 @@
+Residual Wage model and visualization. 
+
+```{r}
+resid_model <- felm(log_wage ~ AGE + female + DIFFCARE + DIFFREM + VETDISAB | METRO + YEAR + DEGFIELD + OCC2010, data = df)
+
+df$resid_wage <- resid(resid_model)
+```
+
+```{r}
+ggplot(df, aes(x = resid_wage, fill = factor(veteran))) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Residual Log Wages by Veteran Status",
+       x = "Log Wage (Residualized)",
+       fill = "Veteran") +
+  theme_minimal()
+```
