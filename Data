@@ -6,7 +6,7 @@ To obtain the data and replicate this project:
    - American Community Survey (ACS)
 
 3. Select the following sample years:
-   - [Specify years you used, e.g., 2010–2019]
+   - 2010-2019
 
 4. Add the following variables to your extract:
    - SEX
