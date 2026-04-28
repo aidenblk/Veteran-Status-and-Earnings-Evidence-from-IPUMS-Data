@@ -1,0 +1,21 @@
+This shows the bias mentioned in models (1) and (2).
+
+```{r make-regressionsAge}
+regAge <- lm(log_wage ~ veteran + AGE, data = df)
+
+robust_se_Age <- sqrt(diag(vcovHC(regAge, type = "HC1")))
+```
+
+```{r table-RegressionAge, results='asis'}
+stargazer(regAge, reg2, 
+          type = "latex",
+          float = TRUE,
+          table.placement = "H",
+          se = list(robust_se_Age, robust_se_2),
+          digits = 3,
+          title = "Age Control Regression",
+          dep.var.labels = "Log Wage Income",
+          column.labels = c("Age", "Age + Female"),
+          covariate.labels = c("Veteran", "Age", "Female"),
+          keep.stat = c("n", "rsq", "adj.rsq"))
+```
